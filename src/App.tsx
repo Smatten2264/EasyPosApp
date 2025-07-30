@@ -1,6 +1,5 @@
 import './App.css';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
 import Signout from './pages/Signout';
 import Overview from './pages/Overview';
 import Settings from './pages/Settings';
