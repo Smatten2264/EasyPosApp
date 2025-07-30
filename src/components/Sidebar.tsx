@@ -28,7 +28,6 @@ const Sidebar = () => {
 
   const links = [
     { text: 'Overblik', icon: <DashboardIcon />, to: '/overblik' },
-    { text: 'Indstilling', icon: <SettingsIcon />, to: '/indstilling' },
     { text: 'Log ud', icon: <LogoutIcon />, to: '/logud' },
   ];
 

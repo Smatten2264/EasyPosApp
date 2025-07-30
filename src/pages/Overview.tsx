@@ -99,7 +99,9 @@ const Overview = () => {
             name: g.name ?? "Ukendt",
             shortkey: g.shortkey ?? "",
           }))
-          .filter((g: ItemGroup) => !!g.id);
+          .filter(
+            (g: ItemGroup) => g.shortkey !== undefined && g.shortkey !== ""
+          );
 
         setItemGroups(fullGroups);
       } catch (err) {
@@ -110,25 +112,30 @@ const Overview = () => {
     fetchItemGroups();
   }, []);
 
-
   // her starter min fetch på data, i forhold til om jeg tager varegrupper med også i mit API
   const fetchComparison = async () => {
+    // Hent JWT token fra localStorage eller sessionStorage
     const token =
       localStorage.getItem("auth_token") ||
       sessionStorage.getItem("auth_token");
     if (!token) return console.error("Auth token missing");
 
+    // Sikr dig at alle datoer er valgt før du fortsætter
     if (!startDate || !endDate || !compareStart || !compareEnd) {
       alert("Alle datoer skal være udfyldt.");
       return;
     }
 
-    // Udtræk shortkeys for valgte grupper
+    // Find alle shortkeys fra alle tilgængelige varegrupper
+    const allShortkeys = itemGroups.map((g) => g.shortkey).filter((key) => key);
+
+    // Find shortkeys for de varegrupper brugeren har valgt (via checkboxe)
     const selectedShortkeys = itemGroups
       .filter((g) => selectedGroups.includes(g.id))
-      .map((g) => g.shortkey);
+      .map((g) => g.shortkey)
+      .filter((key) => key); // fjern tomme shortkeys
 
-    // Byg request-body med datointerval og afdelinger
+    // Byg request-body med datoer og afdelinger
     const body: any = {
       datefromperiod1: startDate.startOf("day").toISOString(),
       datetoperiod1: endDate.endOf("day").toISOString(),
@@ -137,21 +144,28 @@ const Overview = () => {
       departments: selectedDepartments,
     };
 
-    // Hvis der er valgt varegrupper, send dem med
-    // Hvis INGEN er valgt, så udelad 'itemgroups' helt – så henter API'en ALLE
-    if (selectedShortkeys.length > 0) {
+    // 👇 Dette er den vigtige del:
+    // Hvis brugeren har valgt NOGLE varegrupper, men IKKE ALLE → så medsend itemgroups
+    // Hvis INGEN eller ALLE er valgt → så medsend IKKE itemgroups, så API’en henter alt
+    const isAllSelected =
+      selectedShortkeys.length > 0 &&
+      selectedShortkeys.length === allShortkeys.length;
+
+    if (selectedShortkeys.length > 0 && !isAllSelected) {
       body.itemgroups = selectedShortkeys;
     }
 
-    console.log("Final request body:", body); // Debug
+    console.log("Final request body:", body); // Til debugging
 
     try {
+      // Send request til API
       const response = await axios.post("/api/statistic/periodsummary", body, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       console.log("Respons fra API: ", response.data);
 
+      // Find periodedata fra respons
       const periods = response.data.periodsummary?.periods || [];
       const period1 = periods.find((p: any) =>
         p.period?.toLowerCase().includes("1")
@@ -160,22 +174,21 @@ const Overview = () => {
         p.period?.toLowerCase().includes("2")
       );
 
-      // Sikkerhedscheck for mine 2 perioder
       if (!period1 || !period2) {
         console.warn("Kunne ikke finde begge perioder");
         return;
       }
 
-      // Opdater graf
+      // Gem data til brug i graf
       setComparisonData({
         period1Sum: period1.sales_price ?? 0,
         period2Sum: period2.sales_price ?? 0,
       });
 
-      // Gem hele respons til brug i afdelinger mm.
+      // Gem hele API-responsen til videre brug (fx i afdelingskort)
       setResponseData(response.data);
 
-      // Opbyg datagrundlag til totalbox
+      // Forbered datagrundlag til beregning af totalboksen
       const period1Data: PeriodData = {
         oms: period1.sales_price ?? 0,
         kostpr: period1.cost_price ?? 0,
@@ -190,7 +203,7 @@ const Overview = () => {
         eksp: period2.number_of_sales ?? 0,
       };
 
-      // Beregn totals og index – vises i "Total"-boksen
+      // Beregn totals og indeks, og gem det i state
       const totals = calculateTotal(period1Data, period2Data);
       setTotalSummary(totals);
     } catch (err) {
