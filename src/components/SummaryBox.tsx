@@ -1,10 +1,42 @@
 import React, { JSX } from "react";
+import { Grid, Box, Typography } from "@mui/material";
 import { BarChart } from "@mui/x-charts";
+
+// Reusable metric card
+const MetricCard = ({
+  title,
+  value,
+  index,
+}: {
+  title: string;
+  value: string;
+  index: string;
+}) => (
+  <Box
+    sx={{
+      backgroundColor: "#fff",
+      borderRadius: "16px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+      padding: "1rem",
+      textAlign: "center",
+    }}
+  >
+    <Typography fontSize="0.9rem" color="text.secondary">
+      {title}
+    </Typography>
+    <Typography fontWeight="bold" fontSize="1.5rem">
+      {value}
+    </Typography>
+    <Typography fontSize="1rem" color="text.secondary">
+      {index}
+    </Typography>
+  </Box>
+);
 
 const SummaryBox = (): JSX.Element => {
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         backgroundColor: "#fff",
         borderRadius: "16px",
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
@@ -13,64 +45,51 @@ const SummaryBox = (): JSX.Element => {
         border: "1px solid #e0e0e0",
       }}
     >
-      <div
-        style={{
-          fontSize: "1.25rem",
-          fontWeight: 600,
-          color: "#374151",
-          marginBottom: "1.5rem",
-        }}
+      <Typography
+        sx={{ fontSize: "1.25rem", fontWeight: 600, color: "#374151", mb: 3 }}
       >
         Total
-      </div>
+      </Typography>
 
-      <div
-        style={{
-          backgroundColor: "#f9fafb",
-          borderRadius: "12px",
-          padding: "1.25rem",
-          marginBottom: "1.5rem",
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        <p>
-          <strong>Omsætning/Index:</strong> 0 kr / 0,00 %
-        </p>
-        <p>
-          <strong>DB/DG:</strong> 0 kr / 0,00 %
-        </p>
-        <p>
-          <strong>Eksp/Index:</strong> 0 stk / 0 %
-        </p>
-        <p>
-          <strong>Gns. køb/Index:</strong> 0 kr / 0 %
-        </p>
-      </div>
+      {/* Responsive grid layout for metrics */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard title="Omsætning/Index" value="0 kr" index="0,00%" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard title="DB/DG" value="0 kr" index="0,00%" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard title="Eksp/Index" value="0 stk" index="0%" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <MetricCard title="Gns. køb/Index" value="0 kr" index="0%" />
+        </Grid>
+      </Grid>
 
-      <div
-        style={{
+      {/* Chart section */}
+      <Box
+        sx={{
           backgroundColor: "#f3f4f6",
           borderRadius: "12px",
           padding: "1.25rem",
           border: "1px solid #e5e7eb",
         }}
       >
-        <div
-          style={{ fontWeight: 600, marginBottom: "1rem", color: "#374151" }}
-        >
+        <Typography fontWeight={600} mb={2} color="#374151">
           Omsætning
-        </div>
+        </Typography>
 
         <BarChart
           xAxis={[{ scaleType: "band", data: ["Periode", "Sammenlign"] }]}
           series={[
-            { data: [36000, null], color: "#1976d2" },
-            { data: [null, 26500], color: "#f50057" },
+            { data: [0, null], color: "#1976d2" },
+            { data: [null, 0], color: "#f50057" },
           ]}
           height={200}
         />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

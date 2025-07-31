@@ -13,6 +13,7 @@ import {
   Checkbox,
   useMediaQuery,
   useTheme,
+  Grid,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -37,6 +38,52 @@ interface ItemGroup {
   shortkey: string;
 }
 
+// Bruger dette, for at kunne henter alle departments, fra vores department api. Detter gør jeg så jeg kan fetche dem dynamisk, og ikke hardcode noget.
+interface Department {
+  id: string;
+  name: string;
+}
+
+// Genanvendelig visnings-komponent til ét nøgletal (fx omsætning, DB, eksp, gns. køb)
+const MetricCard = ({
+  title, // Titel på nøgletal (fx "Omsætning/Index")
+  value, // Værdi vist i stor skrift (fx "19.500 kr")
+  index, // Sammenligningsværdi eller index (fx "134%")
+}: {
+  title: string;
+  value: string;
+  index: string;
+}) => (
+  <Box
+    sx={{
+      backgroundColor: "#fff", // Hvid baggrund
+      borderRadius: "16px", // Bløde hjørner
+      boxShadow: "0 4px 12px rgba(0,0,0,0.08)", // Let skygge
+      padding: { xs: "0.8rem", sm: "1rem" }, // Mindre padding på mobil
+      textAlign: "center",
+      height: "100%", // Sikrer at kortet fylder hele Grid-højden
+    }}
+  >
+    {/* Titel med lidt mindre font på mobil */}
+    <Typography
+      fontSize={{ xs: "0.85rem", sm: "0.9rem" }}
+      color="text.secondary"
+    >
+      {title}
+    </Typography>
+
+    {/* Selve værdien vises i stor og fed tekst */}
+    <Typography fontWeight="bold" fontSize={{ xs: "1.3rem", sm: "1.5rem" }}>
+      {value}
+    </Typography>
+
+    {/* Index-visning nedenunder med lidt lysere farve */}
+    <Typography fontSize={{ xs: "0.95rem", sm: "1rem" }} color="text.secondary">
+      {index}
+    </Typography>
+  </Box>
+);
+
 const Overview = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -52,10 +99,18 @@ const Overview = () => {
 
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [selectedDepartments] = useState<string[]>(["001", "002", "003"]);
+  //const [selectedDepartments] = useState<string[]>(["001", "002", "003"]);
   const [triggerFetch, setTriggerFetch] = useState(false);
+
+  // åbner dialog for mobilform perioder
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
+
   const allSelected = selectedGroups.length === itemGroups.length;
+
+  // Her laver jeg mine Const til interface Department
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
 
   const [comparisonData, setComparisonData] = useState<{
     period1Sum: number;
@@ -63,6 +118,30 @@ const Overview = () => {
   } | null>(null);
   const [responseData, setResponseData] = useState<any>(null);
   const [totalSummary, setTotalSummary] = useState<TotalSummary | null>(null);
+
+  // Beregn hvilken periode der er størst (til brug i mobilgraf-farver og rækkefølge)
+  const isPeriod1Bigger =
+    (comparisonData?.period1Sum ?? 0) > (comparisonData?.period2Sum ?? 0);
+
+  const biggerValue = isPeriod1Bigger
+    ? comparisonData?.period1Sum ?? 0
+    : comparisonData?.period2Sum ?? 0;
+
+  const smallerValue = isPeriod1Bigger
+    ? comparisonData?.period2Sum ?? 0
+    : comparisonData?.period1Sum ?? 0;
+
+  const biggerDateLabel = isPeriod1Bigger
+    ? startDate?.format("DD/MM/YYYY") ?? ""
+    : compareStart?.format("DD/MM/YYYY") ?? "";
+
+  const smallerDateLabel = isPeriod1Bigger
+    ? compareStart?.format("DD/MM/YYYY") ?? ""
+    : startDate?.format("DD/MM/YYYY") ?? "";
+
+  const barColors = isMobile
+    ? ["#0e4d90", "#232323"] // EasyPOS blå og sort
+    : undefined;
 
   // Når triggerFetch er sat til true (efter tryk på "OK" i dialogen),
   // og alle datoer er sat, så kaldes fetchComparison.
@@ -80,6 +159,34 @@ const Overview = () => {
     compareStart,
     compareEnd,
   ]);
+
+  // Henter afdelinger
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      const token =
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token");
+      if (!token) return;
+
+      try {
+        const res = await axios.get("/api/masterdata/departments", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const deptList: Department[] = res.data.departments.map((d: any) => ({
+          id: d.departmentnumber,
+          name: d.name,
+        }));
+
+        setDepartments(deptList);
+        setSelectedDepartments(deptList.map((d) => d.id)); // Vælg alle som standard
+      } catch (err) {
+        console.error("Fejl ved hentning af afdelinger", err);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   useEffect(() => {
     const fetchItemGroups = async () => {
@@ -111,6 +218,8 @@ const Overview = () => {
 
     fetchItemGroups();
   }, []);
+
+  // Her fetcher jeg Departments
 
   // her starter min fetch på data, i forhold til om jeg tager varegrupper med også i mit API
   const fetchComparison = async () => {
@@ -248,125 +357,126 @@ const Overview = () => {
         </Typography>
 
         {/* Periodevalg */}
-        <Typography fontWeight="medium" sx={{ mb: 1 }}>
-          Periode
-        </Typography>
-        <Stack direction={isMobile ? "column" : "row"} spacing={2} mb={3}>
-          <DatePicker
-            label="Fra dato"
-            value={startDate}
-            onChange={setStartDate}
-          />
-          <DatePicker label="Til dato" value={endDate} onChange={setEndDate} />
-        </Stack>
+        {!isMobile && (
+          <>
+            <Typography fontWeight="medium" sx={{ mb: 1 }}>
+              Periode
+            </Typography>
+            <Stack direction="row" spacing={2} mb={3}>
+              <DatePicker
+                label="Fra dato"
+                value={startDate}
+                onChange={setStartDate}
+              />
+              <DatePicker
+                label="Til dato"
+                value={endDate}
+                onChange={setEndDate}
+              />
+            </Stack>
 
-        {/* Sammenligningsperiode */}
-        <Typography fontWeight="medium" sx={{ mb: 1 }}>
-          Sammenlign
-        </Typography>
-        <Stack direction={isMobile ? "column" : "row"} spacing={2} mb={3}>
-          <DatePicker
-            label="Fra dato"
-            value={compareStart}
-            onChange={setCompareStart}
-          />
-          <DatePicker
-            label="Til dato"
-            value={compareEnd}
-            onChange={setCompareEnd}
-          />
-        </Stack>
+            <Typography fontWeight="medium" sx={{ mb: 1 }}>
+              Sammenlign
+            </Typography>
+            <Stack direction="row" spacing={2} mb={3}>
+              <DatePicker
+                label="Fra dato"
+                value={compareStart}
+                onChange={setCompareStart}
+              />
+              <DatePicker
+                label="Til dato"
+                value={compareEnd}
+                onChange={setCompareEnd}
+              />
+            </Stack>
+          </>
+        )}
 
         {/* Handlingsknapper: opdater data og vælg varegrupper */}
+        {/* Knapper – tilpasses baseret på isMobile */}
         <Box
           display="flex"
           flexDirection={isMobile ? "column" : "row"}
           gap={2}
           mt={2}
+          justifyContent={isMobile ? "center" : "flex-start"}
         >
-          <Button variant="contained" onClick={fetchComparison}>
-            Opdater
-          </Button>
+          {isMobile ? (
+            // Mobilform: "Vælg perioder" åbner en dialog
+            <Button
+              variant="contained"
+              onClick={() => setIsDateDialogOpen(true)}
+            >
+              VÆLG PERIODER
+            </Button>
+          ) : (
+            // PC-form: "Opdater" henter data
+            <Button variant="contained" onClick={fetchComparison}>
+              OPDATER
+            </Button>
+          )}
+
+          {/* Vælg varegrupper vises i begge tilfælde */}
           <Button variant="contained" onClick={() => setIsDialogOpen(true)}>
-            Vælg Varegrupper
+            VÆLG VAREGRUPPER
           </Button>
         </Box>
 
         {/* Totalbox - viser nøgletal for perioden og index sammenlignet med sidste år */}
 
-        <Box
-          sx={{
-            backgroundColor: "#f9fafb",
-            borderRadius: 2,
-            border: "1px solid #e0e0e0",
-            p: 3,
-            maxWidth: isMobile ? "100%" : 360,
-            mt: 4,
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            Total
-          </Typography>
-          <Stack spacing={1}>
-            {totalSummary ? (
-              <>
-                {/* Omsætning og index */}
-                <Box display="flex" alignItems="center" gap={1}>
-                  <PublicIcon fontSize="small" />
-                  <Typography fontWeight="bold">Omsætning/Index:</Typography>
-                  <Typography>
-                    {totalSummary.oms.toLocaleString("da-DK", {
-                      style: "currency",
-                      currency: "DKK",
-                    })}{" "}
-                    / {totalSummary.omsIdx > 0 ? "+" : ""}
-                    {totalSummary.omsIdx.toFixed(2)}%
-                  </Typography>
-                </Box>
+        {totalSummary ? (
+          <Box sx={{ mt: 4 }}>
+            <Grid container spacing={8}>
+              {/* Hver Grid item tilpasses skærmstørrelsen:
+          - xs=6 (50%) → 2 kort pr. række på mobil
+          - md=3 (25%) → 4 kort pr. række på større skærme
+      */}
+              <Grid item xs={6} sm={6} md={6}>
+                <MetricCard
+                  title="Omsætning/Index"
+                  value={totalSummary.oms.toLocaleString("da-DK", {
+                    style: "currency",
+                    currency: "DKK",
+                  })}
+                  index={`${totalSummary.omsIdx.toFixed(2)}%`}
+                />
+              </Grid>
 
-                {/* Dækningsbidrag og dækningsgrad */}
-                <Box display="flex" alignItems="center" gap={1}>
-                  <LocalOfferIcon fontSize="small" />
-                  <Typography fontWeight="bold">DB/DG:</Typography>
-                  <Typography>
-                    {totalSummary.db.toLocaleString("da-DK", {
-                      style: "currency",
-                      currency: "DKK",
-                    })}{" "}
-                    / {totalSummary.dg.toFixed(2)}%
-                  </Typography>
-                </Box>
+              <Grid item xs={6} sm={6} md={6}>
+                <MetricCard
+                  title="DB/DG"
+                  value={totalSummary.db.toLocaleString("da-DK", {
+                    style: "currency",
+                    currency: "DKK",
+                  })}
+                  index={`${totalSummary.dg.toFixed(2)}%`}
+                />
+              </Grid>
 
-                {/* Antal ekspeditioner og index */}
-                <Box display="flex" alignItems="center" gap={1}>
-                  <ShoppingCartIcon fontSize="small" />
-                  <Typography fontWeight="bold">Eksp/Index:</Typography>
-                  <Typography>
-                    {totalSummary.eksp.toLocaleString("da-DK")} stk /{" "}
-                    {totalSummary.ekspIdx > 0 ? "+" : ""}
-                    {totalSummary.ekspIdx.toFixed(2)}%
-                  </Typography>
-                </Box>
+              <Grid item xs={6} sm={6} md={6}>
+                <MetricCard
+                  title="Eksp/Index"
+                  value={`${totalSummary.eksp.toLocaleString("da-DK")} stk`}
+                  index={`${totalSummary.ekspIdx.toFixed(2)}%`}
+                />
+              </Grid>
 
-                {/* Gennemsnitskøb og index */}
-                <Box display="flex" alignItems="center" gap={1}>
-                  <ShoppingBasketIcon fontSize="small" />
-                  <Typography fontWeight="bold">Gns. køb/Index:</Typography>
-                  <Typography>
-                    {totalSummary.gnsKob.toLocaleString("da-DK", {
-                      style: "currency",
-                      currency: "DKK",
-                    })}{" "}
-                    / {totalSummary.gnsKobIdx > 0 ? "+" : ""}
-                    {totalSummary.gnsKobIdx.toFixed(2)}%
-                  </Typography>
-                </Box>
-              </>
-            ) : (
-              <Typography>Ingen data endnu</Typography>
-            )}
-          </Stack>
-        </Box>
+              <Grid item xs={6} sm={6} md={6}>
+                <MetricCard
+                  title="Gns. køb/Index"
+                  value={totalSummary.gnsKob.toLocaleString("da-DK", {
+                    style: "currency",
+                    currency: "DKK",
+                  })}
+                  index={`${totalSummary.gnsKobIdx.toFixed(2)}%`}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        ) : (
+          <Typography mt={4}>Ingen data endnu</Typography>
+        )}
 
         {/* Graf med sammenlignende omsætning */}
         {comparisonData &&
@@ -377,14 +487,20 @@ const Overview = () => {
                 sx={{ maxWidth: isMobile ? "100%" : 700, mx: "auto", mt: 4 }}
               >
                 <SalesChart
-                  labels={[
-                    startDate?.format("DD/MM/YYYY") ?? "",
-                    compareStart?.format("DD/MM/YYYY") ?? "",
-                  ]}
-                  values={[
-                    comparisonData.period1Sum,
-                    comparisonData.period2Sum,
-                  ]}
+                  labels={
+                    isMobile
+                      ? [smallerDateLabel, biggerDateLabel] // Skift rækkefølgen her
+                      : [
+                          startDate?.format("DD/MM/YYYY") ?? "",
+                          compareStart?.format("DD/MM/YYYY") ?? "",
+                        ]
+                  }
+                  values={
+                    isMobile
+                      ? [smallerValue, biggerValue] // Skift rækkefølgen her
+                      : [comparisonData.period1Sum, comparisonData.period2Sum]
+                  }
+                  colors={isMobile ? ["#0e4d90", "#232323"] : undefined} // Blå = venstre = 2025
                 />
               </Box>
               <Divider sx={{ my: 4 }} />
@@ -496,6 +612,70 @@ const Overview = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Mobilvisning: Periode-dialog med 4 datepickers */}
+      {isMobile && (
+        <Dialog
+          open={isDateDialogOpen}
+          onClose={() => setIsDateDialogOpen(false)}
+          fullWidth
+          maxWidth="xs"
+          PaperProps={{
+            sx: { borderRadius: 2, p: 2 },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: "bold", textAlign: "center" }}>
+            Vælg Perioder
+          </DialogTitle>
+
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {/* Periode 1 */}
+            <Typography variant="subtitle2">Periode</Typography>
+            <DatePicker
+              label="Fra dato"
+              value={startDate}
+              onChange={setStartDate}
+            />
+            <DatePicker
+              label="Til dato"
+              value={endDate}
+              onChange={setEndDate}
+            />
+
+            {/* Periode 2 */}
+            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+              Sammenlign
+            </Typography>
+            <DatePicker
+              label="Fra dato"
+              value={compareStart}
+              onChange={setCompareStart}
+            />
+            <DatePicker
+              label="Til dato"
+              value={compareEnd}
+              onChange={setCompareEnd}
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 2 }}>
+            <Button onClick={() => setIsDateDialogOpen(false)} color="inherit">
+              Annuller
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setIsDateDialogOpen(false);
+                setTriggerFetch(true); // start fetch
+              }}
+            >
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </LocalizationProvider>
   );
 };
