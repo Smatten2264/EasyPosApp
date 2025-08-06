@@ -84,6 +84,7 @@ const SalesChart = ({
             minimumFractionDigits: 0, // eks. "1.200.000 kr."
           }),
         color: "#000", // tekstfarve: sort
+        clip: false, // tillader at teksten går udenfor canvas
       },
     },
     scales: {

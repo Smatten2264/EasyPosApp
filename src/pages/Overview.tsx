@@ -346,6 +346,19 @@ const Overview = () => {
           backgroundColor: isMobile ? theme.palette.grey[100] : "transparent",
         }}
       >
+        {/* EasyPOS logo øverst */}
+        <Box sx={{ textAlign: isMobile ? "center" : "left", mb: 2 }}>
+          <img
+            src="/EasyPOS%20LOGO_horisontal%201_blue.png"
+            alt="EasyPOS Logo"
+            style={{
+              maxWidth: "100%",
+              height: isMobile ? "40px" : "60px",
+              objectFit: "contain",
+            }}
+          />
+        </Box>
+
         {/* Sideoverskrift */}
         <Typography
           variant="h5"
