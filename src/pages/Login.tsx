@@ -136,6 +136,7 @@ const Login = () => {
             margin="normal"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            autoFocus
           />
           <TextField
             label="Kodeord"

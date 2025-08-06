@@ -46,43 +46,47 @@ interface Department {
 
 // Genanvendelig visnings-komponent til ét nøgletal (fx omsætning, DB, eksp, gns. køb)
 const MetricCard = ({
-  title, // Titel på nøgletal (fx "Omsætning/Index")
-  value, // Værdi vist i stor skrift (fx "19.500 kr")
-  index, // Sammenligningsværdi eller index (fx "134%")
+  title,
+  value,
+  index,
 }: {
   title: string;
   value: string;
   index: string;
-}) => (
-  <Box
-    sx={{
-      backgroundColor: "#fff", // Hvid baggrund
-      borderRadius: "16px", // Bløde hjørner
-      boxShadow: "0 4px 12px rgba(0,0,0,0.08)", // Let skygge
-      padding: { xs: "0.8rem", sm: "1rem" }, // Mindre padding på mobil
-      textAlign: "center",
-      height: "100%", // Sikrer at kortet fylder hele Grid-højden
-    }}
-  >
-    {/* Titel med lidt mindre font på mobil */}
-    <Typography
-      fontSize={{ xs: "0.85rem", sm: "0.9rem" }}
-      color="text.secondary"
+}) => {
+  const theme = useTheme();
+
+  return (
+    <Box
+      sx={{
+        backgroundColor: theme.palette.background.paper,
+        borderRadius: "16px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+        padding: { xs: "0.8rem", sm: "1rem" },
+        textAlign: "center",
+        height: "100%",
+      }}
     >
-      {title}
-    </Typography>
+      <Typography
+        fontSize={{ xs: "0.85rem", sm: "0.9rem" }}
+        color="text.secondary"
+      >
+        {title}
+      </Typography>
 
-    {/* Selve værdien vises i stor og fed tekst */}
-    <Typography fontWeight="bold" fontSize={{ xs: "1.3rem", sm: "1.5rem" }}>
-      {value}
-    </Typography>
+      <Typography fontWeight="bold" fontSize={{ xs: "1.3rem", sm: "1.5rem" }}>
+        {value}
+      </Typography>
 
-    {/* Index-visning nedenunder med lidt lysere farve */}
-    <Typography fontSize={{ xs: "0.95rem", sm: "1rem" }} color="text.secondary">
-      {index}
-    </Typography>
-  </Box>
-);
+      <Typography
+        fontSize={{ xs: "0.95rem", sm: "1rem" }}
+        color="text.secondary"
+      >
+        {index}
+      </Typography>
+    </Box>
+  );
+};
 
 const Overview = () => {
   const theme = useTheme();
@@ -343,7 +347,10 @@ const Overview = () => {
       <Box
         sx={{
           p: isMobile ? 2 : 4,
-          backgroundColor: isMobile ? theme.palette.grey[100] : "transparent",
+          backgroundColor: theme.palette.grey[100],
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {/* EasyPOS logo øverst */}
@@ -380,11 +387,13 @@ const Overview = () => {
                 label="Fra dato"
                 value={startDate}
                 onChange={setStartDate}
+                format="DD-MM-YYYY"
               />
               <DatePicker
                 label="Til dato"
                 value={endDate}
                 onChange={setEndDate}
+                format="DD-MM-YYYY"
               />
             </Stack>
 
@@ -396,11 +405,13 @@ const Overview = () => {
                 label="Fra dato"
                 value={compareStart}
                 onChange={setCompareStart}
+                format="DD-MM-YYYY"
               />
               <DatePicker
                 label="Til dato"
                 value={compareEnd}
                 onChange={setCompareEnd}
+                format="DD-MM-YYYY"
               />
             </Stack>
           </>
@@ -650,11 +661,13 @@ const Overview = () => {
               label="Fra dato"
               value={startDate}
               onChange={setStartDate}
+              format="DD-MM-YYYY"
             />
             <DatePicker
               label="Til dato"
               value={endDate}
               onChange={setEndDate}
+              format="DD-MM-YYYY"
             />
 
             {/* Periode 2 */}
@@ -665,11 +678,13 @@ const Overview = () => {
               label="Fra dato"
               value={compareStart}
               onChange={setCompareStart}
+              format="DD-MM-YYYY"
             />
             <DatePicker
               label="Til dato"
               value={compareEnd}
               onChange={setCompareEnd}
+              format="DD-MM-YYYY"
             />
           </DialogContent>
 
