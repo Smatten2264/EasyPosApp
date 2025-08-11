@@ -44,7 +44,7 @@ const SalesChart = ({
     labels, // x-akse labels (datoer)
     datasets: [
       {
-        label: "Omsætning", // bruges kun til tooltips eller legend
+        label: "Omsætning", 
         data: values, // y-akse værdier (eks. 1.000.000 kr.)
         backgroundColor: colors ?? ["#1976d2", "#1976d2"], // fallback: blå
         borderRadius: 6, // afrundede hjørner på søjler
@@ -54,57 +54,64 @@ const SalesChart = ({
   };
 
   // Konfiguration af grafens udseende og funktionalitet
-  const options: ChartOptions<"bar"> = {
-    responsive: true, // gør grafen responsiv
-    plugins: {
-      legend: { display: false }, // vi viser ikke nogen legend
-      tooltip: {
-        callbacks: {
-          // Custom tekst i tooltip (når man hover)
-          label: (context: TooltipItem<"bar">) => {
-            const val = context.raw as number;
-            return val.toLocaleString("da-DK", {
-              style: "currency",
-              currency: "DKK",
-            });
-          },
-        },
-      },
-      // Plugin: Vis omsætningstal direkte ovenpå søjlerne
-      datalabels: {
-        anchor: "end", // placér label over søjlen
-        align: "end",
-        font: {
-          weight: "bold",
-        },
-        formatter: (value: number) =>
-          value.toLocaleString("da-DK", {
+const options: ChartOptions<"bar"> = {
+  responsive: true, // Diagrammet skalerer automatisk til containerens bredde/højde
+  plugins: {
+    legend: { display: false }, // Vi viser ikke nogen forklaringsboks/legend
+    tooltip: {
+      callbacks: {
+        // Bestem hvad der står i tooltippen ved hover
+        label: (context: TooltipItem<"bar">) => {
+          const val = context.raw as number;
+          // Formatér tal som dansk valuta (DKK)
+          return val.toLocaleString("da-DK", {
             style: "currency",
             currency: "DKK",
-            minimumFractionDigits: 0, // eks. "1.200.000 kr."
-          }),
-        color: "#000", // tekstfarve: sort
-        clip: false, // tillader at teksten går udenfor canvas
-      },
-    },
-    scales: {
-      y: {
-        ticks: {
-          // Formatér y-aksen til dansk valuta
-          callback: function (tickValue) {
-            if (typeof tickValue === "number") {
-              return tickValue.toLocaleString("da-DK", {
-                style: "currency",
-                currency: "DKK",
-                minimumFractionDigits: 0,
-              });
-            }
-            return tickValue;
-          },
+          });
         },
       },
     },
-  };
+    datalabels: {
+      anchor: "end", // Placer label over søjlens top
+      align: "end", // Justér til toppen af søjlen
+      font: {
+        weight: "bold", // Fed skrift så tallene er tydelige
+      },
+      formatter: (value: number) =>
+        // Formatér datalabel som valuta uden decimaler
+        value.toLocaleString("da-DK", {
+          style: "currency",
+          currency: "DKK",
+          minimumFractionDigits: 0,
+        }),
+      color: "#000", // Sort tekstfarve til datalabel
+      clip: false, // Sørger for at teksten må være udenfor canvas
+    },
+  },
+  scales: {
+    y: {
+      ticks: {
+        // Formatér Y-akse værdier som dansk valuta
+        callback: function (tickValue) {
+          if (typeof tickValue === "number") {
+            return tickValue.toLocaleString("da-DK", {
+              style: "currency",
+              currency: "DKK",
+              minimumFractionDigits: 0,
+            });
+          }
+          return tickValue;
+        },
+        padding: 10, // Lidt ekstra luft mellem akse-tal og datalabels
+      },
+      // Her har jeg lavet fixet til mit problem = at mine tal forsvandt i min container.
+      // Jeg finder største værdi i datasættet (Math.max(...values))
+      // Ganger med 1.15 for at give ca. 15% ekstra højde
+      // Dermed er der altid luft til datalabels, så de ikke bliver klippet
+      suggestedMax: Math.max(...values) * 1.15,
+    },
+  },
+};
 
   // Returnér den færdige komponent med overskrift og graf
   return (

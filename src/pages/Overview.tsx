@@ -511,20 +511,15 @@ const Overview = () => {
                 sx={{ maxWidth: isMobile ? "100%" : 700, mx: "auto", mt: 4 }}
               >
                 <SalesChart
-                  labels={
-                    isMobile
-                      ? [smallerDateLabel, biggerDateLabel] // Skift rækkefølgen her
-                      : [
-                          startDate?.format("DD/MM/YYYY") ?? "",
-                          compareStart?.format("DD/MM/YYYY") ?? "",
-                        ]
-                  }
-                  values={
-                    isMobile
-                      ? [smallerValue, biggerValue] // Skift rækkefølgen her
-                      : [comparisonData.period1Sum, comparisonData.period2Sum]
-                  }
-                  colors={isMobile ? ["#0e4d90", "#232323"] : undefined} // Blå = venstre = 2025
+                  labels={[
+                    startDate?.format("DD/MM/YYYY") ?? "",
+                    compareStart?.format("DD/MM/YYYY") ?? "",
+                  ]}
+                  values={[
+                    comparisonData?.period1Sum ?? 0,
+                    comparisonData?.period2Sum ?? 0,
+                  ]}
+                  colors={isMobile ? ["#0e4d90", "#232323"] : undefined}
                 />
               </Box>
               <Divider sx={{ my: 4 }} />
